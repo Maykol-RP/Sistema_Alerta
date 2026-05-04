@@ -55,3 +55,6 @@ Desercion_Estudiantil/
 Abre la terminal (CMD, PowerShell o Git Bash) en la carpeta del proyecto y ejecuta:
 
 pip install -r requirements.txt
+
+
+streamlit run app.py
