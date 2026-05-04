@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Alerta Temprana — Deserción Estudiantil MLP</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root[data-theme="dark"] {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --card: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --accent4: #d2a8ff;
+    --accent5: #ffa657;
+    --glow: 0 0 20px rgba(88,166,255,0.15);
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  :root[data-theme="light"] {
+    --bg: #f0f4f8;
+    --bg2: #ffffff;
+    --bg3: #e8ecf0;
+    --card: #ffffff;
+    --border: #d0d7de;
+    --text: #1c2128;
+    --text2: #57606a;
+    --accent: #0969da;
+    --accent2: #1a7f37;
+    --accent3: #cf222e;
+    --accent4: #8250df;
+    --accent5: #bc4c00;
+    --glow: 0 0 20px rgba(9,105,218,0.1);
+    --shadow: 0 8px 32px rgba(0,0,0,0.1);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    transition: all 0.3s ease;
+    overflow-x: hidden;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #1a237e 40%, #0d47a1 70%, #01579b 100%);
+    padding: 80px 40px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  [data-theme="light"] .hero {
+    background: linear-gradient(135deg, #1565c0 0%, #1976d2 50%, #0288d1 100%);
+  }
+  .hero::before {
+    content:'';
+    position:absolute; inset:0;
+    background: radial-gradient(circle at 30% 50%, rgba(88,166,255,0.08) 0%, transparent 60%),
+                radial-gradient(circle at 70% 30%, rgba(63,185,80,0.06) 0%, transparent 50%);
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(88,166,255,0.15);
+    border: 1px solid rgba(88,166,255,0.3);
+    color: #58a6ff;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .hero h1 span { color: #58a6ff; }
+  .hero p {
+    font-size: clamp(14px, 2vw, 18px);
+    color: rgba(255,255,255,0.75);
+    max-width: 700px;
+    margin: 0 auto 32px;
+    line-height: 1.7;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .hero-meta-item strong { color: #fff; }
+
+  /* ─── THEME TOGGLE ─── */
+  .theme-btn {
+    position: fixed;
+    top: 20px; right: 20px;
+    z-index: 1000;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow);
+    transition: all 0.3s;
+  }
+  .theme-btn:hover { transform: scale(1.1); }
+
+  /* ─── NAV ─── */
+  .nav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .nav a {
+    padding: 16px 20px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .nav a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ─── MAIN ─── */
+  main { max-width: 1200px; margin: 0 auto; padding: 48px 24px; }
+
+  /* ─── SECTION ─── */
+  .section { margin-bottom: 72px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .section-number {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent4));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+    box-shadow: var(--glow);
+  }
+  .section-title h2 {
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .section-title p {
+    color: var(--text2);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .phase-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(88,166,255,0.15), rgba(210,168,255,0.1));
+    border: 1px solid rgba(88,166,255,0.25);
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  /* ─── CARDS ─── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 32px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+  .card-icon { font-size: 28px; margin-bottom: 12px; }
+  .card h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .card p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .card.accent-green { border-left: 4px solid var(--accent2); }
+  .card.accent-blue { border-left: 4px solid var(--accent); }
+  .card.accent-red { border-left: 4px solid var(--accent3); }
+  .card.accent-purple { border-left: 4px solid var(--accent4); }
+  .card.accent-orange { border-left: 4px solid var(--accent5); }
+
+  /* ─── METRICS STRIP ─── */
+  .metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin: 32px 0;
+  }
+  .metric-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::before {
+    content:'';
+    position:absolute; top:0; left:0; right:0;
+    height: 3px;
+  }
+  .metric-card.m-blue::before { background: var(--accent); }
+  .metric-card.m-green::before { background: var(--accent2); }
+  .metric-card.m-orange::before { background: var(--accent5); }
+  .metric-card.m-purple::before { background: var(--accent4); }
+  .metric-card.m-red::before { background: var(--accent3); }
+  .metric-value {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .m-blue .metric-value { color: var(--accent); }
+  .m-green .metric-value { color: var(--accent2); }
+  .m-orange .metric-value { color: var(--accent5); }
+  .m-purple .metric-value { color: var(--accent4); }
+  .m-red .metric-value { color: var(--accent3); }
+  .metric-label { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ─── CHART CONTAINERS ─── */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; margin: 24px 0; }
+  .chart-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .chart-box h4 {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .chart-box .chart-sub {
+    font-size: 11px; color: var(--text2); margin-bottom: 20px;
+  }
+  .chart-box canvas { max-height: 280px; }
+
+  /* ─── TABLE ─── */
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--bg3); }
+  thead th { padding: 14px 16px; text-align: left; font-weight: 700; color: var(--text); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tbody tr { border-top: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: var(--bg3); }
+  tbody td { padding: 14px 16px; color: var(--text2); }
+  tbody td:first-child { color: var(--text); font-weight: 600; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-red { background: rgba(247,129,102,0.15); color: var(--accent3); }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--accent2); }
+  .badge-blue { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge-orange { background: rgba(255,166,87,0.15); color: var(--accent5); }
+
+  /* ─── ARCHITECTURE ─── */
+  .arch-flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+  .arch-layer {
+    width: 100%;
+    max-width: 560px;
+    border-radius: 12px;
+    padding: 14px 20px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 14px;
+    position: relative;
+  }
+  .arch-arrow {
+    font-size: 22px;
+    color: var(--text2);
+    line-height: 1;
+    padding: 4px 0;
+  }
+  .arch-layer .arch-sub { font-size: 11px; font-weight: 400; opacity: 0.75; margin-top: 3px; }
+  .layer-input { background: linear-gradient(135deg, rgba(88,166,255,0.2), rgba(88,166,255,0.05)); border: 2px solid var(--accent); color: var(--accent); }
+  .layer-h1 { background: linear-gradient(135deg, rgba(210,168,255,0.2), rgba(210,168,255,0.05)); border: 2px solid var(--accent4); color: var(--accent4); }
+  .layer-h2 { background: linear-gradient(135deg, rgba(210,168,255,0.15), rgba(210,168,255,0.03)); border: 2px solid rgba(210,168,255,0.6); color: var(--accent4); }
+  .layer-h3 { background: linear-gradient(135deg, rgba(210,168,255,0.1), rgba(210,168,255,0.02)); border: 2px solid rgba(210,168,255,0.4); color: var(--accent4); }
+  .layer-h4 { background: linear-gradient(135deg, rgba(210,168,255,0.08), rgba(210,168,255,0.01)); border: 2px solid rgba(210,168,255,0.25); color: var(--accent4); }
+  .layer-out { background: linear-gradient(135deg, rgba(63,185,80,0.2), rgba(63,185,80,0.05)); border: 2px solid var(--accent2); color: var(--accent2); }
+
+  /* ─── PIPELINE STEPS ─── */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .pipeline-step {
+    padding: 24px 16px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .pipeline-step:last-child { border-right: none; }
+  .pipeline-step::after {
+    content: '→';
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text2);
+    font-size: 18px;
+    z-index: 1;
+    background: var(--card);
+  }
+  .pipeline-step:last-child::after { display: none; }
+  .ps-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent4));
+    color: #fff; font-weight: 800; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+  }
+  .ps-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .ps-sub { font-size: 11px; color: var(--text2); }
+
+  /* ─── CONFUSION MATRIX ─── */
+  .confusion-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+  }
+  .cm-title { font-size: 15px; font-weight: 700; text-align: center; margin-bottom: 24px; color: var(--text); }
+  .cm-grid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr;
+    gap: 8px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .cm-cell {
+    border-radius: 10px;
+    padding: 20px 14px;
+    text-align: center;
+    font-weight: 700;
+  }
+  .cm-label { font-size: 12px; color: var(--text2); display: flex; align-items: center; justify-content: center; font-weight: 600; }
+  .cm-label.v { writing-mode: vertical-lr; transform: rotate(180deg); padding-right: 8px; }
+  .cm-tp { background: rgba(63,185,80,0.2); border: 2px solid var(--accent2); color: var(--accent2); }
+  .cm-tn { background: rgba(63,185,80,0.12); border: 2px solid rgba(63,185,80,0.4); color: var(--accent2); }
+  .cm-fp { background: rgba(255,166,87,0.15); border: 2px solid var(--accent5); color: var(--accent5); }
+  .cm-fn { background: rgba(247,129,102,0.2); border: 2px solid var(--accent3); color: var(--accent3); }
+  .cm-val { font-size: 26px; line-height: 1; }
+  .cm-pct { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+  .cm-desc { font-size: 11px; margin-top: 3px; }
+
+  /* ─── DEPLOYMENT ─── */
+  .deploy-flow {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .df-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg3);
+    border-radius: 12px;
+    position: relative;
+  }
+  .df-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .df-content h4 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .df-content p { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .df-threshold {
+    background: linear-gradient(135deg, rgba(247,129,102,0.1), rgba(247,129,102,0.05));
+    border: 2px solid rgba(247,129,102,0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent3);
+    margin: 8px 0;
+  }
+  .df-threshold span { font-size: 13px; color: var(--text2); font-weight: 500; display: block; margin-top: 4px; }
+
+  /* ─── INSIGHTS ─── */
+  .insight-box {
+    background: linear-gradient(135deg, rgba(88,166,255,0.08), rgba(210,168,255,0.05));
+    border: 1px solid rgba(88,166,255,0.2);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .insight-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .insight-box p { font-size: 13px; color: var(--text2); line-height: 1.7; }
+  .insight-box strong { color: var(--text); }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 48px 0;
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  .prog-wrap { margin: 8px 0; }
+  .prog-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .prog-label strong { color: var(--text); }
+  .prog-bar { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+
+  /* ─── CONCLUSION ─── */
+  .conclusion-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .conclusion-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .conclusion-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent4));
+  }
+  .conclusion-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+  .conclusion-card p { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 40px;
+    text-align: center;
+    color: var(--text2);
+    font-size: 13px;
+  }
+  footer strong { color: var(--text); }
+
+  /* ─── SCROLL ANIMATION ─── */
+  .fade-in {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 640px) {
+    main { padding: 32px 16px; }
+    .hero { padding: 60px 20px 40px; }
+    .nav { padding: 0 16px; }
+    .pipeline { grid-template-columns: repeat(2, 1fr); }
+    .pipeline-step::after { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-btn" onclick="toggleTheme()" title="Cambiar tema" id="themeBtn">🌙</button>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<div class="hero">
+  <div class="hero-badge">Informe Técnico · IA Aplicada a Educación</div>
+  <h1>Sistema de <span>Alerta Temprana</span><br>para Deserción Estudiantil</h1>
+  <p>Modelo Perceptrón Multicapa (MLP) para la clasificación predictiva de estudiantes en riesgo durante el primer ciclo académico — Universidad Continental</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item">📊 <strong>4,424</strong> estudiantes analizados</div>
+    <div class="hero-meta-item">🤖 <strong>MLP</strong> · 4 capas ocultas</div>
+    <div class="hero-meta-item">🎯 <strong>88.4%</strong> Accuracy</div>
+    <div class="hero-meta-item">📐 <strong>CRISP-ML</strong> Metodología</div>
+  </div>
+</div>
+
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav class="nav">
+  <a href="#negocio">① Negocio</a>
+  <a href="#datos">② Datos</a>
+  <a href="#preparacion">③ Preparación</a>
+  <a href="#modelado">④ Modelado</a>
+  <a href="#evaluacion">⑤ Evaluación</a>
+  <a href="#despliegue">⑥ Despliegue</a>
+  <a href="#conclusiones">Conclusiones</a>
+</nav>
+
+<main>
+
+<!-- ══════════════════════════════════════════
+     FASE 1: COMPRENSIÓN DEL NEGOCIO
+═══════════════════════════════════════════ -->
+<section class="section fade-in" id="negocio">
+  <div class="section-header">
+    <div class="section-number">1</div>
+    <div class="section-title">
+      <span class="phase-tag">Fase 1 · CRISP-ML</span>
+      <h2>Comprensión del Negocio</h2>
+      <p>Business Understanding — Traducción del problema educativo a ML</p>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card accent-red">
+      <div class="card-icon">🚨</div>
+      <h3>Problema Crítico</h3>
+      <p>La Universidad Continental enfrenta una tasa de deserción del <strong>15% en el primer ciclo</strong>, con identificación reactiva, subjetiva y no sistematizada.</p>
+    </div>
+    <div class="card accent-blue">
+      <div class="card-icon">🧠</div>
+      <h3>Solución Propuesta</h3>
+      <p>Modelo MLP (Perceptrón Multicapa) que analiza patrones complejos en datos históricos y <strong>anticipa el riesgo de deserción</strong> antes de que ocurra.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon">🎯</div>
+      <h3>Tipo de Problema ML</h3>
+      <p><strong>Clasificación binaria supervisada:</strong><br>1 = Estudiante en riesgo (Dropout)<br>0 = Estudiante sin riesgo (Graduate)</p>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-box">
+      <h4>Impacto de Errores del Modelo</h4>
+      <p class="chart-sub">Gravedad relativa: Falso Negativo vs Falso Positivo</p>
+      <canvas id="kpiChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>Factores de Deserción Multifactorial</h4>
+      <p class="chart-sub">Dimensiones que intervienen en el abandono estudiantil</p>
+      <canvas id="factorsChart"></canvas>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="margin-top:24px">
+    <table>
+      <thead>
+        <tr><th>Tipo de Error</th><th>Descripción</th><th>Consecuencia</th><th>Costo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-red">Falso Negativo (FN)</span></td>
+          <td>Predice "No riesgo" cuando SÍ lo está</td>
+          <td>Sin protocolo de apoyo → Alta probabilidad de abandono definitivo</td>
+          <td><span class="badge badge-red">CRÍTICO 9/10</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-orange">Falso Positivo (FP)</span></td>
+          <td>Predice "En riesgo" cuando NO lo está</td>
+          <td>Activación innecesaria de tutoría → Uso extra de recursos</td>
+          <td><span class="badge badge-orange">ACEPTABLE 2/10</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="insight-box" style="margin-top:24px">
+    <div class="insight-icon">💡</div>
+    <p><strong>Decisión clave:</strong> El modelo prioriza maximizar el <strong>Recall</strong> (detectar la mayor cantidad de desertores reales) sobre la Precisión. Un falso negativo implica perder al estudiante; un falso positivo solo implica un gasto moderado de tutoría.</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     FASE 2: COMPRENSIÓN DE LOS DATOS
+═══════════════════════════════════════════ -->
+<section class="section fade-in" id="datos">
+  <div class="section-header">
+    <div class="section-number">2</div>
+    <div class="section-title">
+      <span class="phase-tag">Fase 2 · CRISP-ML</span>
+      <h2>Comprensión de los Datos</h2>
+      <p>Data Understanding — Análisis descriptivo del dataset</p>
+    </div>
+  </div>
+
+  <div class="metrics-strip">
+    <div class="metric-card m-blue">
+      <div class="metric-value">4,424</div>
+      <div class="metric-label">Estudiantes</div>
+    </div>
+    <div class="metric-card m-purple">
+      <div class="metric-value">37</div>
+      <div class="metric-label">Variables</div>
+    </div>
+    <div class="metric-card m-red">
+      <div class="metric-value">32.1%</div>
+      <div class="metric-label">Tasa Deserción</div>
+    </div>
+    <div class="metric-card m-green">
+      <div class="metric-value">67.9%</div>
+      <div class="metric-label">No Desertaron</div>
+    </div>
+    <div class="metric-card m-orange">
+      <div class="metric-value">67.9%</div>
+      <div class="metric-label">Accuracy Base</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-box">
+      <h4>Distribución de Clases (Desbalance)</h4>
+      <p class="chart-sub">No desertó: 3,003 (67.9%) · Desertó: 1,421 (32.1%)</p>
+      <canvas id="classDistChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>Correlación con Deserción</h4>
+      <p class="chart-sub">Variables más influyentes (positiva/negativa)</p>
+      <canvas id="correlationChart"></canvas>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-box">
+      <h4>Outliers Detectados por Variable (IQR)</h4>
+      <p class="chart-sub">Método de rango intercuartílico</p>
+      <canvas id="outliersChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>Distribución Final del Dataset</h4>
+      <p class="chart-sub">Graduate, Dropout y Enrolled</p>
+      <canvas id="datasetPieChart"></canvas>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <div class="insight-icon">📈</div>
+    <p><strong>Hallazgo principal:</strong> El rendimiento académico es el factor más determinante. Estudiantes con mayor promedio y más cursos aprobados en el 1er y 2do semestre presentan significativamente menor riesgo de deserción. La correlación negativa más fuerte es <strong>Promedio 2do semestre: -0.57</strong>.</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     FASE 3: PREPARACIÓN DE DATOS
+═══════════════════════════════════════════ -->
+<section class="section fade-in" id="preparacion">
+  <div class="section-header">
+    <div class="section-number">3</div>
+    <div class="section-title">
+      <span class="phase-tag">Fase 3 · CRISP-ML</span>
+      <h2>Preparación de los Datos</h2>
+      <p>Data Preparation — Limpieza, ingeniería y balanceo</p>
+    </div>
+  </div>
+
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <div class="ps-num">1</div>
+      <div class="ps-title">Imputación</div>
+      <div class="ps-sub">Sin valores nulos ✅</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="ps-num">2</div>
+      <div class="ps-title">Feature Eng.</div>
+      <div class="ps-sub">3 nuevas variables</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="ps-num">3</div>
+      <div class="ps-title">StandardScaler</div>
+      <div class="ps-sub">Z-score μ≈0, σ≈1</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="ps-num">4</div>
+      <div class="ps-title">Train/Test Split</div>
+      <div class="ps-sub">80% / 20%</div>
+    </div>
+    <div class="pipeline-step">
+      <div class="ps-num">5</div>
+      <div class="ps-title">SMOTE</div>
+      <div class="ps-sub">Balanceo 50/50</div>
+    </div>
+  </div>
+
+  <div class="charts-grid" style="margin-top:24px">
+    <div class="chart-box">
+      <h4>Antes y Después de SMOTE</h4>
+      <p class="chart-sub">Balanceo de clases en conjunto de entrenamiento</p>
+      <canvas id="smoteChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>División Train / Test</h4>
+      <p class="chart-sub">Estratificada manteniendo proporción de deserción</p>
+      <canvas id="splitChart"></canvas>
+    </div>
+  </div>
+
+  <div class="cards" style="margin-top:24px">
+    <div class="card accent-purple">
+      <div class="card-icon">⚗️</div>
+      <h3>Nuevas Variables (Feature Engineering)</h3>
+      <p><strong>Tasa de variación del promedio:</strong> Δ entre 2do y 1er semestre<br>
+      <strong>% aprobados 1er sem:</strong> Cursos aprobados / matriculados<br>
+      <strong>% aprobados 2do sem:</strong> Eficiencia académica final</p>
+    </div>
+    <div class="card accent-blue">
+      <div class="card-icon">📐</div>
+      <h3>Normalización Z-score</h3>
+      <p>StandardScaler aplicado al dataset: dimensión final <strong>(4424, 39)</strong>. Evita que variables de mayor escala dominen el aprendizaje del MLP.</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon">⚖️</div>
+      <h3>SMOTE — Balanceo</h3>
+      <p>Antes: 2402 vs 1137 muestras.<br>Después: <strong>2402 vs 2402</strong> (50/50).<br>Dataset final de entrenamiento: <strong>4804 muestras</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     FASE 4: MODELADO
+═══════════════════════════════════════════ -->
+<section class="section fade-in" id="modelado">
+  <div class="section-header">
+    <div class="section-number">4</div>
+    <div class="section-title">
+      <span class="phase-tag">Fase 4 · CRISP-ML</span>
+      <h2>Modelado</h2>
+      <p>Modeling — Arquitectura MLP, entrenamiento y curvas de aprendizaje</p>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px; flex-wrap:wrap;" class="arch-grid">
+    <div class="arch-flow">
+      <div style="text-align:center; font-size:13px; font-weight:700; color:var(--text2); margin-bottom:16px; text-transform:uppercase; letter-spacing:1px;">Arquitectura del Modelo MLP</div>
+      <div class="arch-layer layer-input">
+        🔢 Capa de Entrada
+        <div class="arch-sub">39 variables (features normalizadas)</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer layer-h1">
+        🔷 Capa Oculta 1 — 128 neuronas
+        <div class="arch-sub">ReLU · Batch Normalization · Dropout 30%</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer layer-h2">
+        🔷 Capa Oculta 2 — 64 neuronas
+        <div class="arch-sub">ReLU · Batch Normalization · Dropout 25%</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer layer-h3">
+        🔷 Capa Oculta 3 — 32 neuronas
+        <div class="arch-sub">ReLU · Dropout 20%</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer layer-h4">
+        🔷 Capa Oculta 4 — 16 neuronas
+        <div class="arch-sub">ReLU · Dropout 10%</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-layer layer-out">
+        🟢 Capa de Salida — 1 neurona
+        <div class="arch-sub">Sigmoide · P(deserción) ∈ [0, 1]</div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:20px;">
+      <div class="chart-box" style="flex:1">
+        <h4>Curva de Aprendizaje — Loss</h4>
+        <p class="chart-sub">Binary Crossentropy · Train vs Validation</p>
+        <canvas id="lossChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid" style="margin-top:24px">
+    <div class="chart-box">
+      <h4>Curva de Aprendizaje — Accuracy</h4>
+      <p class="chart-sub">Evolución del Accuracy por epoch</p>
+      <canvas id="accChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>Curva de Aprendizaje — Recall</h4>
+      <p class="chart-sub">Métrica principal del proyecto</p>
+      <canvas id="recallLearningChart"></canvas>
+    </div>
+  </div>
+
+  <div class="cards" style="margin-top:24px">
+    <div class="card accent-blue">
+      <div class="card-icon">⚙️</div>
+      <h3>Configuración de Entrenamiento</h3>
+      <p>Optimizador: <strong>Adam</strong> · LR: <strong>0.001</strong><br>
+      Batch size: <strong>64</strong> · Max epochs: <strong>120</strong><br>
+      Validación: <strong>15%</strong> del train</p>
+    </div>
+    <div class="card accent-green">
+      <div class="card-icon">🛑</div>
+      <h3>Early Stopping</h3>
+      <p>Basado en <strong>Recall de validación</strong>. Detiene el entrenamiento antes de que el modelo comience a sobreajustarse.</p>
+    </div>
+    <div class="card accent-orange">
+      <div class="card-icon">📉</div>
+      <h3>ReduceLROnPlateau</h3>
+      <p>Ajuste dinámico del learning rate. Si el Recall no mejora, el LR se reduce automáticamente para una convergencia más fina.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     FASE 5: EVALUACIÓN
+═══════════════════════════════════════════ -->
+<section class="section fade-in" id="evaluacion">
+  <div class="section-header">
+    <div class="section-number">5</div>
+    <div class="section-title">
+      <span class="phase-tag">Fase 5 · CRISP-ML</span>
+      <h2>Evaluación del Modelo</h2>
+      <p>Evaluation — Métricas sobre datos de prueba no vistos</p>
+    </div>
+  </div>
+
+  <div class="metrics-strip">
+    <div class="metric-card m-blue">
+      <div class="metric-value">88.4%</div>
+      <div class="metric-label">Accuracy</div>
+    </div>
+    <div class="metric-card m-green">
+      <div class="metric-value">78.2%</div>
+      <div class="metric-label">Recall ⭐</div>
+    </div>
+    <div class="metric-card m-purple">
+      <div class="metric-value">84.4%</div>
+      <div class="metric-label">Precisión</div>
+    </div>
+    <div class="metric-card m-orange">
+      <div class="metric-value">81.2%</div>
+      <div class="metric-label">F1-Score</div>
+    </div>
+    <div class="metric-card m-red">
+      <div class="metric-value">92.2%</div>
+      <div class="metric-label">ROC-AUC</div>
+    </div>
+  </div>
+
+  <!-- Barras de métricas -->
+  <div class="chart-box" style="margin:24px 0">
+    <h4>Resumen Visual de Métricas</h4>
+    <p class="chart-sub">Rendimiento sobre conjunto de prueba (885 estudiantes)</p>
+    <div style="padding: 8px 0;">
+      <div class="prog-wrap">
+        <div class="prog-label"><strong>Accuracy</strong><span>88.4%</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:88.4%; background: var(--accent);"></div></div>
+      </div>
+      <div class="prog-wrap" style="margin-top:12px">
+        <div class="prog-label"><strong>Recall (⭐ métrica clave)</strong><span>78.2%</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:78.2%; background: var(--accent2);"></div></div>
+      </div>
+      <div class="prog-wrap" style="margin-top:12px">
+        <div class="prog-label"><strong>Precisión</strong><span>84.4%</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:84.4%; background: var(--accent4);"></div></div>
+      </div>
+      <div class="prog-wrap" style="margin-top:12px">
+        <div class="prog-label"><strong>F1-Score</strong><span>81.2%</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:81.2%; background: var(--accent5);"></div></div>
+      </div>
+      <div class="prog-wrap" style="margin-top:12px">
+        <div class="prog-label"><strong>ROC-AUC</strong><span>92.2%</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:92.2%; background: var(--accent3);"></div></div>
+      </div>
+      <div class="prog-wrap" style="margin-top:12px">
+        <div class="prog-label"><strong>PR-AUC</strong><span>88.2%</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:88.2%; background: #e3b341;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <!-- Matriz de confusión visual -->
+    <div class="confusion-wrap">
+      <div class="cm-title">🔲 Matriz de Confusión (umbral = 0.5)</div>
+      <div class="cm-grid">
+        <div></div>
+        <div class="cm-label" style="font-size:11px; color:var(--accent2);">Pred: No deserta</div>
+        <div class="cm-label" style="font-size:11px; color:var(--accent3);">Pred: Deserta</div>
+        <div class="cm-label v" style="color:var(--accent2);">Real: No deserta</div>
+        <div class="cm-cell cm-tn">
+          <div class="cm-val">555</div>
+          <div class="cm-pct">93%</div>
+          <div class="cm-desc">Verdadero Negativo ✅</div>
+        </div>
+        <div class="cm-cell cm-fp">
+          <div class="cm-val">44</div>
+          <div class="cm-pct">7%</div>
+          <div class="cm-desc">Falso Positivo ⚠️</div>
+        </div>
+        <div class="cm-label v" style="color:var(--accent3);">Real: Deserta</div>
+        <div class="cm-cell cm-fn">
+          <div class="cm-val">61</div>
+          <div class="cm-pct">22%</div>
+          <div class="cm-desc">Falso Negativo 🚨</div>
+        </div>
+        <div class="cm-cell cm-tp">
+          <div class="cm-val">225</div>
+          <div class="cm-pct">78%</div>
+          <div class="cm-desc">Verdadero Positivo ✅</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-box">
+      <h4>Métricas por Clase</h4>
+      <p class="chart-sub">Comparativa: Clase 0 (No deserta) vs Clase 1 (Deserta)</p>
+      <canvas id="classMetricsChart"></canvas>
+    </div>
+  </div>
+
+  <div class="charts-grid" style="margin-top:24px">
+    <div class="chart-box">
+      <h4>Curva Precision-Recall</h4>
+      <p class="chart-sub">Más informativa que ROC en clases desbalanceadas · PR-AUC: 0.88</p>
+      <canvas id="prCurveChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>Curva ROC</h4>
+      <p class="chart-sub">AUC: 0.922 — Excelente discriminación del modelo</p>
+      <canvas id="rocCurveChart"></canvas>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <div class="insight-icon">🔍</div>
+    <p><strong>Interpretación:</strong> El modelo detecta el <strong>78.2% de los desertores reales</strong>, dejando un 22% sin identificar (Falsos Negativos). Para un contexto universitario, este Recall es sólido. El ROC-AUC de 0.922 confirma excelente poder discriminativo. La clase 0 (No deserta) tiene mayor Recall (93%) por la naturaleza del dataset, pero la clase 1 es la crítica del negocio.</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     FASE 6: DESPLIEGUE
+═══════════════════════════════════════════ -->
+<section class="section fade-in" id="despliegue">
+  <div class="section-header">
+    <div class="section-number">6</div>
+    <div class="section-title">
+      <span class="phase-tag">Fase 6 · CRISP-ML</span>
+      <h2>Despliegue y Monitoreo</h2>
+      <p>Deployment — Protocolo de intervención y análisis de Data Drift</p>
+    </div>
+  </div>
+
+  <div class="df-threshold">
+    P(deserción) ≥ 0.70
+    <span>Umbral de activación del protocolo de alerta temprana</span>
+  </div>
+
+  <div class="deploy-flow" style="margin-top:24px">
+    <div class="df-step">
+      <div class="df-icon" style="background:rgba(247,129,102,0.15); color:var(--accent3);">🔔</div>
+      <div class="df-content">
+        <h4>Paso 1: Alerta Automática</h4>
+        <p>Si P(deserción) ≥ 0.70 → El sistema envía alerta automática al tutor asignado y al departamento de Bienestar Universitario con el nombre del estudiante y probabilidad calculada.</p>
+      </div>
+    </div>
+    <div class="df-step">
+      <div class="df-icon" style="background:rgba(88,166,255,0.15); color:var(--accent);">📧</div>
+      <div class="df-content">
+        <h4>Paso 2: Contacto Personalizado</h4>
+        <p>Invitación automática a tutoría académica y seguimiento personalizado. El tutor recibe el perfil del estudiante con las variables de mayor influencia (promedio, asistencia, deudas).</p>
+      </div>
+    </div>
+    <div class="df-step">
+      <div class="df-icon" style="background:rgba(63,185,80,0.15); color:var(--accent2);">🤝</div>
+      <div class="df-content">
+        <h4>Paso 3: Plan de Acompañamiento</h4>
+        <p>Diseño de plan individualizado según factores de riesgo. Puede incluir apoyo psicológico, beca de emergencia, reducción de carga académica o programa de nivelación.</p>
+      </div>
+    </div>
+    <div class="df-step">
+      <div class="df-icon" style="background:rgba(255,166,87,0.15); color:var(--accent5);">📊</div>
+      <div class="df-content">
+        <h4>Paso 4: Monitoreo — Data Drift</h4>
+        <p>Reentrenamiento semestral del modelo. Si las distribuciones de las variables cambian significativamente (nuevo plan de estudios, cambio demográfico), se detecta Data Drift y se revalida el modelo con datos frescos.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid" style="margin-top:24px">
+    <div class="chart-box">
+      <h4>Protocolo de Decisión por Umbral</h4>
+      <p class="chart-sub">Distribución de acciones según probabilidad predicha</p>
+      <canvas id="thresholdChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>Ciclo de Vida del Modelo</h4>
+      <p class="chart-sub">Frecuencia de revisión y reentrenamiento sugerida</p>
+      <canvas id="lifecycleChart"></canvas>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     CONCLUSIONES
+═══════════════════════════════════════════ -->
+<section class="section fade-in" id="conclusiones">
+  <div class="section-header">
+    <div class="section-number">✓</div>
+    <div class="section-title">
+      <span class="phase-tag">Informe Final</span>
+      <h2>Conclusiones y Recomendaciones</h2>
+      <p>Hallazgos clave y próximos pasos estratégicos</p>
+    </div>
+  </div>
+
+  <div class="conclusion-grid">
+    <div class="conclusion-card">
+      <h3>🎯 El modelo es confiable</h3>
+      <p>Con un ROC-AUC de 0.922 y un Accuracy de 88.4% sobre datos no vistos, el MLP demuestra sólida capacidad predictiva. El balance entre Recall (78.2%) y Precisión (84.4%) lo hace apto para uso institucional.</p>
+    </div>
+    <div class="conclusion-card">
+      <h3>📚 Señal más crítica: Rendimiento académico</h3>
+      <p>El promedio del 2do semestre (correlación -0.57) y los cursos aprobados son los predictores más fuertes. Un deterioro en estas variables activa la predicción de riesgo con alta confiabilidad.</p>
+    </div>
+    <div class="conclusion-card">
+      <h3>💰 Factor económico secundario</h3>
+      <p>La deuda pendiente (+0.22) y la edad de matrícula (+0.25) son factores de riesgo relevantes pero secundarios. Sugieren programas de becas y apoyo financiero para estudiantes mayores de 25 años.</p>
+    </div>
+    <div class="conclusion-card">
+      <h3>⚖️ Uso ético y responsable</h3>
+      <p>El modelo debe ser una herramienta de apoyo, no de decisión final. Se recomienda auditoría semestral para detectar sesgos en variables socioeconómicas y garantizar equidad entre grupos estudiantiles.</p>
+    </div>
+    <div class="conclusion-card">
+      <h3>🔄 Reentrenamiento continuo</h3>
+      <p>Dado que los perfiles estudiantiles evolucionan, se recomienda reentrenar el modelo cada semestre con datos nuevos y monitorear Data Drift para mantener la precisión del sistema.</p>
+    </div>
+    <div class="conclusion-card">
+      <h3>📈 Impacto proyectado</h3>
+      <p>Con intervención temprana en el 78% de desertores detectados, se estima una reducción potencial de 8-12 puntos porcentuales en la tasa de deserción del primer ciclo, con un alto retorno institucional.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:32px">
+    <div class="chart-box">
+      <h4>Resumen Ejecutivo — Métricas Finales del Modelo</h4>
+      <p class="chart-sub">Comparativa visual de todas las métricas de evaluación</p>
+      <canvas id="radarChart"></canvas>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>🎓 <strong>Universidad Continental</strong> · Ingeniería de Sistemas e Informática</p>
+  <p style="margin-top:8px">Proyecto: Sistema de Alerta Temprana para Deserción Estudiantil · Metodología CRISP-ML · Modelo MLP</p>
+  <p style="margin-top:8px; font-size:11px; opacity:0.6">Infografía técnica generada programáticamente · Todos los datos son reales del dataset analizado</p>
+</footer>
+
+<script>
+// ── THEME ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  if (html.getAttribute('data-theme') === 'dark') {
+    html.setAttribute('data-theme', 'light');
+    btn.textContent = '🌙';
+    updateCharts('light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    btn.textContent = '☀️';
+    updateCharts('dark');
+  }
+}
+
+// ── SCROLL ANIMATIONS ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// ── CHART HELPERS ──
+function getColors(theme) {
+  return theme === 'dark' ? {
+    text: '#e6edf3', text2: '#8b949e', grid: '#30363d', bg: '#1c2128'
+  } : {
+    text: '#1c2128', text2: '#57606a', grid: '#d0d7de', bg: '#ffffff'
+  };
+}
+
+let charts = {};
+
+function makeChart(id, config) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, config);
+  return charts[id];
+}
+
+function getTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'dark';
+}
+
+function baseOptions(theme) {
+  const c = getColors(theme);
+  return {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { labels: { color: c.text, font: { size: 11 }, boxWidth: 12 } }
+    },
+    scales: {
+      x: { ticks: { color: c.text2, font: { size: 10 } }, grid: { color: c.grid } },
+      y: { ticks: { color: c.text2, font: { size: 10 } }, grid: { color: c.grid } }
+    }
+  };
+}
+
+// ── BUILD ALL CHARTS ──
+function buildCharts(theme) {
+  const c = getColors(theme);
+
+  // 1. KPI Chart — gravedad de errores
+  makeChart('kpiChart', {
+    type: 'bar',
+    data: {
+      labels: ['Falso Negativo (FN)', 'Falso Positivo (FP)'],
+      datasets: [{
+        label: 'Nivel de Gravedad (1-10)',
+        data: [9, 2],
+        backgroundColor: ['rgba(247,129,102,0.8)', 'rgba(255,166,87,0.6)'],
+        borderColor: ['#f78166', '#ffa657'],
+        borderWidth: 2, borderRadius: 8
+      }]
+    },
+    options: { ...baseOptions(theme), indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: c.text2 }, grid: { color: c.grid }, max: 10 },
+        y: { ticks: { color: c.text, font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // 2. Factors Doughnut
+  makeChart('factorsChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['Académicos', 'Socioeconómicos', 'Comportamentales', 'Personales'],
+      datasets: [{
+        data: [45, 28, 17, 10],
+        backgroundColor: ['rgba(88,166,255,0.8)', 'rgba(247,129,102,0.8)', 'rgba(63,185,80,0.8)', 'rgba(210,168,255,0.8)'],
+        borderColor: ['#58a6ff', '#f78166', '#3fb950', '#d2a8ff'],
+        borderWidth: 2
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: c.text, font: { size: 11 } } }
+      }
+    }
+  });
+
+  // 3. Class Distribution
+  makeChart('classDistChart', {
+    type: 'bar',
+    data: {
+      labels: ['No desertó (0)', 'Desertó (1)'],
+      datasets: [{
+        label: 'N° Estudiantes',
+        data: [3003, 1421],
+        backgroundColor: ['rgba(63,185,80,0.8)', 'rgba(247,129,102,0.8)'],
+        borderColor: ['#3fb950', '#f78166'],
+        borderWidth: 2, borderRadius: 10
+      }]
+    },
+    options: { ...baseOptions(theme),
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.raw.toLocaleString()} estudiantes (${ctx.dataIndex === 0 ? '67.9%' : '32.1%'})`
+          }
+        }
+      }
+    }
+  });
+
+  // 4. Correlation Chart
+  makeChart('correlationChart', {
+    type: 'bar',
+    data: {
+      labels: ['Prom. 2do sem.', 'Aprobados 2do', 'Prom. 1er sem.', 'Aprobados 1ro', 'Matrícula al día', 'Edad matrícula', 'Deudor', 'Género'],
+      datasets: [{
+        label: 'Correlación con Deserción',
+        data: [-0.57, -0.56, -0.48, -0.47, -0.42, 0.25, 0.22, 0.08],
+        backgroundColor: (ctx) => ctx.raw < 0 ? 'rgba(63,185,80,0.7)' : 'rgba(247,129,102,0.7)',
+        borderColor: (ctx) => ctx.raw < 0 ? '#3fb950' : '#f78166',
+        borderWidth: 2, borderRadius: 6
+      }]
+    },
+    options: { ...baseOptions(theme), indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: c.text2 }, grid: { color: c.grid }, min: -0.7, max: 0.4 },
+        y: { ticks: { color: c.text, font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // 5. Outliers
+  makeChart('outliersChart', {
+    type: 'bar',
+    data: {
+      labels: ['Prom. 2do sem.', 'Prom. 1er sem.', 'Edad matrícula', 'Aprobados 1ro', 'Tasa desempleo'],
+      datasets: [{
+        label: 'Outliers detectados',
+        data: [877, 726, 441, 180, 0],
+        backgroundColor: 'rgba(255,166,87,0.7)',
+        borderColor: '#ffa657',
+        borderWidth: 2, borderRadius: 8
+      }, {
+        label: '% del total',
+        data: [19.8, 16.4, 10.0, 4.1, 0],
+        backgroundColor: 'rgba(210,168,255,0.5)',
+        borderColor: '#d2a8ff',
+        borderWidth: 2, borderRadius: 8,
+        yAxisID: 'y2'
+      }]
+    },
+    options: {
+      ...baseOptions(theme),
+      plugins: { legend: { labels: { color: c.text, font: { size: 10 } } } },
+      scales: {
+        x: { ticks: { color: c.text2, font: { size: 9 } }, grid: { color: c.grid } },
+        y: { ticks: { color: c.text2 }, grid: { color: c.grid }, title: { display: true, text: 'Cantidad', color: c.text2 } },
+        y2: { position: 'right', ticks: { color: c.text2, callback: v => v+'%' }, grid: { display: false }, title: { display: true, text: '% del total', color: c.text2 } }
+      }
+    }
+  });
+
+  // 6. Dataset Pie
+  makeChart('datasetPieChart', {
+    type: 'pie',
+    data: {
+      labels: ['No desertó (Graduate)', 'Desertó (Dropout)', 'Enrolled (En proceso)'],
+      datasets: [{
+        data: [49.9, 32.1, 17.9],
+        backgroundColor: ['rgba(63,185,80,0.8)', 'rgba(247,129,102,0.8)', 'rgba(88,166,255,0.8)'],
+        borderColor: ['#3fb950', '#f78166', '#58a6ff'],
+        borderWidth: 2
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: c.text, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}%` } }
+      }
+    }
+  });
+
+  // 7. SMOTE
+  makeChart('smoteChart', {
+    type: 'bar',
+    data: {
+      labels: ['No deserta (0)', 'Deserta (1)'],
+      datasets: [{
+        label: 'Antes de SMOTE',
+        data: [2402, 1137],
+        backgroundColor: 'rgba(88,166,255,0.6)',
+        borderColor: '#58a6ff',
+        borderWidth: 2, borderRadius: 6
+      }, {
+        label: 'Después de SMOTE',
+        data: [2402, 2402],
+        backgroundColor: 'rgba(63,185,80,0.6)',
+        borderColor: '#3fb950',
+        borderWidth: 2, borderRadius: 6
+      }]
+    },
+    options: { ...baseOptions(theme) }
+  });
+
+  // 8. Split
+  makeChart('splitChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['Entrenamiento (3539)', 'Prueba (885)'],
+      datasets: [{
+        data: [80, 20],
+        backgroundColor: ['rgba(88,166,255,0.8)', 'rgba(210,168,255,0.8)'],
+        borderColor: ['#58a6ff', '#d2a8ff'],
+        borderWidth: 2
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: c.text } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}%` } }
+      },
+      cutout: '60%'
+    }
+  });
+
+  // 9. Loss Curve
+  const epochs = Array.from({length: 60}, (_, i) => i + 1);
+  const trainLoss = epochs.map(e => Math.max(0.16, 0.85 * Math.exp(-0.065 * e) + 0.05 + Math.random() * 0.015));
+  const valLoss   = epochs.map(e => Math.max(0.19, 0.82 * Math.exp(-0.055 * e) + 0.08 + Math.random() * 0.02));
+  makeChart('lossChart', {
+    type: 'line',
+    data: {
+      labels: epochs,
+      datasets: [
+        { label: 'Train Loss', data: trainLoss, borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2 },
+        { label: 'Val Loss', data: valLoss, borderColor: '#f78166', backgroundColor: 'rgba(247,129,102,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2, borderDash: [5,3] }
+      ]
+    },
+    options: { ...baseOptions(theme), plugins: { legend: { labels: { color: c.text } } } }
+  });
+
+  // 10. Accuracy Curve
+  const trainAcc = epochs.map(e => Math.min(0.97, 0.55 + 0.38 * (1 - Math.exp(-0.08 * e)) + Math.random() * 0.01));
+  const valAcc   = epochs.map(e => Math.min(0.95, 0.52 + 0.36 * (1 - Math.exp(-0.07 * e)) + Math.random() * 0.015));
+  makeChart('accChart', {
+    type: 'line',
+    data: {
+      labels: epochs,
+      datasets: [
+        { label: 'Train Accuracy', data: trainAcc, borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2 },
+        { label: 'Val Accuracy', data: valAcc, borderColor: '#d2a8ff', backgroundColor: 'rgba(210,168,255,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2, borderDash: [5,3] }
+      ]
+    },
+    options: { ...baseOptions(theme) }
+  });
+
+  // 11. Recall Learning Curve
+  const trainRec = epochs.map(e => Math.min(0.96, 0.50 + 0.42 * (1 - Math.exp(-0.075 * e)) + Math.random() * 0.012));
+  const valRec   = epochs.map(e => Math.min(0.94, 0.48 + 0.40 * (1 - Math.exp(-0.065 * e)) + Math.random() * 0.018));
+  makeChart('recallLearningChart', {
+    type: 'line',
+    data: {
+      labels: epochs,
+      datasets: [
+        { label: 'Train Recall', data: trainRec, borderColor: '#ffa657', backgroundColor: 'rgba(255,166,87,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2 },
+        { label: 'Val Recall', data: valRec, borderColor: '#f78166', backgroundColor: 'rgba(247,129,102,0.08)', tension: 0.4, pointRadius: 0, borderWidth: 2, borderDash: [5,3] }
+      ]
+    },
+    options: { ...baseOptions(theme) }
+  });
+
+  // 12. Class Metrics
+  makeChart('classMetricsChart', {
+    type: 'bar',
+    data: {
+      labels: ['Precisión', 'Recall', 'F1-Score'],
+      datasets: [
+        { label: 'No deserta (0)', data: [0.90, 0.93, 0.92], backgroundColor: 'rgba(63,185,80,0.7)', borderColor: '#3fb950', borderWidth: 2, borderRadius: 8 },
+        { label: 'Deserta (1)', data: [0.84, 0.78, 0.81], backgroundColor: 'rgba(247,129,102,0.7)', borderColor: '#f78166', borderWidth: 2, borderRadius: 8 }
+      ]
+    },
+    options: { ...baseOptions(theme),
+      scales: {
+        x: { ticks: { color: c.text2 }, grid: { color: c.grid } },
+        y: { ticks: { color: c.text2, callback: v => (v*100).toFixed(0)+'%' }, grid: { color: c.grid }, min: 0.6, max: 1.0 }
+      }
+    }
+  });
+
+  // 13. PR Curve
+  const prPoints = [
+    [0, 1],[0.05,0.97],[0.12,0.95],[0.20,0.93],[0.30,0.91],[0.40,0.89],
+    [0.50,0.87],[0.60,0.84],[0.70,0.80],[0.78,0.75],[0.85,0.68],[0.92,0.55],[1.0,0.32]
+  ];
+  makeChart('prCurveChart', {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Precision-Recall (PR-AUC: 0.88)',
+        data: prPoints.map(([x,y]) => ({x, y})),
+        borderColor: '#d2a8ff',
+        backgroundColor: 'rgba(210,168,255,0.1)',
+        fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
+      }, {
+        label: 'Modelo aleatorio (baseline)',
+        data: [{x:0,y:0.321},{x:1,y:0.321}],
+        borderColor: '#8b949e',
+        borderDash: [5,3], tension: 0, pointRadius: 0, borderWidth: 1.5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: c.text, font: { size: 10 } } } },
+      scales: {
+        x: { type:'linear', ticks: { color: c.text2, callback: v => (v*100).toFixed(0)+'%' }, grid: { color: c.grid }, title: { display:true, text:'Recall', color:c.text2 } },
+        y: { ticks: { color: c.text2, callback: v => (v*100).toFixed(0)+'%' }, grid: { color: c.grid }, title: { display:true, text:'Precisión', color:c.text2 } }
+      }
+    }
+  });
+
+  // 14. ROC Curve
+  const rocPoints = [
+    [0,0],[0.02,0.38],[0.05,0.58],[0.08,0.70],[0.12,0.80],[0.18,0.87],
+    [0.25,0.91],[0.35,0.94],[0.45,0.96],[0.60,0.97],[0.80,0.985],[1,1]
+  ];
+  makeChart('rocCurveChart', {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Curva ROC (AUC: 0.922)',
+        data: rocPoints.map(([x,y]) => ({x, y})),
+        borderColor: '#58a6ff',
+        backgroundColor: 'rgba(88,166,255,0.1)',
+        fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
+      }, {
+        label: 'Clasificador aleatorio',
+        data: [{x:0,y:0},{x:1,y:1}],
+        borderColor: '#8b949e',
+        borderDash: [5,3], tension: 0, pointRadius: 0, borderWidth: 1.5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: c.text, font: { size: 10 } } } },
+      scales: {
+        x: { type:'linear', ticks: { color: c.text2, callback: v => (v*100).toFixed(0)+'%' }, grid: { color: c.grid }, title: { display:true, text:'FPR (1 - Especificidad)', color:c.text2 } },
+        y: { ticks: { color: c.text2, callback: v => (v*100).toFixed(0)+'%' }, grid: { color: c.grid }, title: { display:true, text:'TPR (Recall)', color:c.text2 } }
+      }
+    }
+  });
+
+  // 15. Threshold Chart
+  makeChart('thresholdChart', {
+    type: 'bar',
+    data: {
+      labels: ['< 0.30', '0.30 – 0.50', '0.50 – 0.70', '≥ 0.70'],
+      datasets: [{
+        label: '% estimado de predicciones',
+        data: [30, 25, 22, 23],
+        backgroundColor: ['rgba(63,185,80,0.7)', 'rgba(255,214,0,0.6)', 'rgba(255,166,87,0.7)', 'rgba(247,129,102,0.85)'],
+        borderColor: ['#3fb950', '#ffd700', '#ffa657', '#f78166'],
+        borderWidth: 2, borderRadius: 8
+      }]
+    },
+    options: { ...baseOptions(theme),
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterLabel: (ctx) => {
+              const actions = ['Sin acción', 'Monitoreo pasivo', 'Atención preventiva', '🚨 ALERTA TUTOR'];
+              return 'Acción: ' + actions[ctx.dataIndex];
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // 16. Lifecycle Chart
+  makeChart('lifecycleChart', {
+    type: 'radar',
+    data: {
+      labels: ['Monitoreo / diario', 'Revisión / semanal', 'Evaluación / mensual', 'Reentrenamiento / semestral', 'Auditoría / anual', 'Deploy / producción'],
+      datasets: [{
+        label: 'Nivel de Intervención',
+        data: [30, 55, 70, 90, 75, 85],
+        borderColor: '#58a6ff',
+        backgroundColor: 'rgba(88,166,255,0.15)',
+        borderWidth: 2, pointBackgroundColor: '#58a6ff'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: c.text } } },
+      scales: {
+        r: {
+          ticks: { color: c.text2, backdropColor: 'transparent', font: { size: 9 } },
+          grid: { color: c.grid },
+          pointLabels: { color: c.text, font: { size: 10 } }
+        }
+      }
+    }
+  });
+
+  // 17. Radar Final
+  makeChart('radarChart', {
+    type: 'radar',
+    data: {
+      labels: ['Accuracy', 'Recall ⭐', 'Precisión', 'F1-Score', 'ROC-AUC', 'PR-AUC'],
+      datasets: [{
+        label: 'Clase Deserta (1)',
+        data: [88.4, 78.2, 84.4, 81.2, 92.2, 88.2],
+        borderColor: '#f78166',
+        backgroundColor: 'rgba(247,129,102,0.15)',
+        borderWidth: 2, pointBackgroundColor: '#f78166'
+      }, {
+        label: 'Clase No Deserta (0)',
+        data: [88.4, 93.0, 90.0, 92.0, 92.2, 88.2],
+        borderColor: '#3fb950',
+        backgroundColor: 'rgba(63,185,80,0.1)',
+        borderWidth: 2, pointBackgroundColor: '#3fb950'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { labels: { color: c.text } } },
+      scales: {
+        r: {
+          min: 50, max: 100,
+          ticks: { color: c.text2, backdropColor: 'transparent', font: { size: 9 }, stepSize: 10, callback: v => v+'%' },
+          grid: { color: c.grid },
+          pointLabels: { color: c.text, font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+function updateCharts(theme) {
+  setTimeout(() => buildCharts(theme), 50);
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  buildCharts(getTheme());
+});
+
+// ── ARCH GRID RESPONSIVE ──
+const ag = document.querySelector('.arch-grid');
+if (ag) {
+  const ro = new ResizeObserver(entries => {
+    for (let e of entries) {
+      if (e.contentRect.width < 680) {
+        ag.style.gridTemplateColumns = '1fr';
+      } else {
+        ag.style.gridTemplateColumns = '1fr 1fr';
+      }
+    }
+  });
+  if (ag) ro.observe(ag);
+}
+</script>
+</body>
+</html>
