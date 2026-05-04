@@ -37,19 +37,21 @@ Este proyecto desarrolla un **modelo de Machine Learning** (Red Neuronal MLP) ca
 **Objetivo:** Clasificar estudiantes en "riesgo de deserción" vs. "sin riesgo", priorizando la detección temprana para reducir la tasa de abandono actual del **15%** en el primer ciclo.
 
 ---
-
 ## 📁 Estructura del Proyecto
+
+```bash
 Desercion_Estudiantil/
 │
-├── app.py # Aplicación web con Streamlit
-├── Parcial_Colab.ipynb # Notebook de entrenamiento
-├── modelo_mlp.h5 # Modelo MLP entrenado
-├── escalador.pkl # StandardScaler para normalizar
-├── features_names.pkl # 39 características del modelo
-├── dataset.csv # Dataset original (UCI #697)
-├── requirements.txt # Dependencias del proyecto
-└── README.md # Este documento
+├── app.py                  # Aplicación web con Streamlit
+├── Parcial_Colab.ipynb     # Notebook de entrenamiento
+├── modelo_mlp.h5           # Modelo MLP entrenado
+├── escalador.pkl           # StandardScaler para normalizar
+├── features_names.pkl      # 39 características del modelo
+├── dataset.csv             # Dataset original (UCI #697)
+├── requirements.txt        # Dependencias del proyecto
+└── README.md               # Este documento
 
 📦 Paso  Instalar dependencias
 Abre la terminal (CMD, PowerShell o Git Bash) en la carpeta del proyecto y ejecuta:
+
 pip install -r requirements.txt
