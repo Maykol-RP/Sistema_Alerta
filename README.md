@@ -58,3 +58,5 @@ pip install -r requirements.txt
 
 
 streamlit run app.py
+
+https://prediccion-desercion-jcvyfrmtpvqogzu7ctizvu.streamlit.app/ 
